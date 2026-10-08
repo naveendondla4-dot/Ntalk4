@@ -410,15 +410,12 @@ function filterChats(v){
 }
 
 async function newChat(){
+ if(!hasSupabase)return alert("Connect Supabase first.");
 
- if(!hasSupabase)
-  return alert("Connect Supabase first.");
-
- const u=
-  (prompt("Enter their NTalk username (example: @rahul):")||"")
-   .trim()
-   .replace(/^@/,"")
-   .toLowerCase();
+ const u=(prompt("Enter their NTalk username (example: @rahul):")||"")
+  .trim()
+  .replace(/^@/,"")
+  .toLowerCase();
 
  if(!u)return;
 
@@ -428,11 +425,8 @@ async function newChat(){
   .eq("username",u)
   .maybeSingle();
 
- if(error||!data)
-  return alert("User not found.");
-
- if(data.id===uid())
-  return alert("You cannot start a chat with yourself.");
+ if(error||!data)return alert("User not found.");
+ if(data.id===uid())return alert("You cannot start a chat with yourself.");
 
  let c=state.chats.find(x=>x.user_id===data.id);
 
@@ -445,7 +439,8 @@ async function newChat(){
    online:false,
    msg:"Tap to chat",
    time:"now",
-   unread:0
+   unread:0,
+   chat_id:null
   };
 
   state.chats.unshift(c);
@@ -454,12 +449,6 @@ async function newChat(){
  state.activeChat=state.chats.indexOf(c);
 
  await loadMessages(c);
- render();
-}
-
-async function openChat(i){
- state.activeChat=i;
- await loadMessages(state.chats[i]);
  render();
 }
 
