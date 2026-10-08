@@ -612,16 +612,89 @@ function messageBubble(m){
 }
 
 async function loadMessages(c){
+ if(!hasSupabase||!c)return;
 
- if(!hasSupabase||!c)
-  return;
+ // Already known chat
+ let chatId=c.chat_id||null;
+
+ // Find existing chat between current user and selected user
+ if(!chatId){
+
+  const {data:mine,error:mineError}=await sb
+   .from("chat_members")
+   .select("chat_id")
+   .eq("user_id",uid());
+
+  if(mineError){
+   console.warn(mineError);
+   state.messages=[];
+   return;
+  }
+
+  const ids=(mine||[]).map(x=>x.chat_id);
+
+  if(ids.length){
+
+   const {data:other,error:otherError}=await sb
+    .from("chat_members")
+    .select("chat_id")
+    .eq("user_id",c.user_id)
+    .in("chat_id",ids);
+
+   if(otherError){
+    console.warn(otherError);
+   }else if(other?.length){
+    chatId=other[0].chat_id;
+   }
+  }
+ }
+
+ // Create a new 1-to-1 chat if it doesn't exist
+ if(!chatId){
+
+  const {data:newChat,error:chatError}=await sb
+   .from("chats")
+   .insert({
+    created_by:uid(),
+    is_group:false
+   })
+   .select("id")
+   .single();
+
+  if(chatError){
+   console.warn(chatError);
+   alert(chatError.message);
+   return;
+  }
+
+  chatId=newChat.id;
+
+  const {error:memberError}=await sb
+   .from("chat_members")
+   .insert([
+    {
+     chat_id:chatId,
+     user_id:uid()
+    },
+    {
+     chat_id:chatId,
+     user_id:c.user_id
+    }
+   ]);
+
+  if(memberError){
+   console.warn(memberError);
+   alert(memberError.message);
+   return;
+  }
+ }
+
+ c.chat_id=chatId;
 
  const {data,error}=await sb
   .from("messages")
   .select("*")
-  .or(
-   `and(sender_id.eq.${uid()},receiver_id.eq.${c.user_id}),and(sender_id.eq.${c.user_id},receiver_id.eq.${uid()})`
-  )
+  .eq("chat_id",chatId)
   .order("created_at");
 
  if(error){
@@ -632,35 +705,42 @@ async function loadMessages(c){
 
  state.messages=data||[];
 
+ // Mark received messages as seen
  await sb
   .from("messages")
   .update({
    seen_at:new Date().toISOString()
   })
-  .eq("sender_id",c.user_id)
-  .eq("receiver_id",uid())
+  .eq("chat_id",chatId)
+  .neq("sender_id",uid())
   .is("seen_at",null);
 }
 
 async function sendMessage(e){
-
  e.preventDefault();
 
  const input=document.getElementById("msg");
  const text=input.value.trim();
  const c=state.chats[state.activeChat];
 
- if(!text||!c)
-  return;
+ if(!text||!c)return;
 
  if(!hasSupabase)
   return alert("Connect Supabase first.");
 
+ // Make sure chat exists
+ if(!c.chat_id){
+  await loadMessages(c);
+ }
+
+ if(!c.chat_id)
+  return alert("Chat could not be created.");
+
  const {data,error}=await sb
   .from("messages")
   .insert({
+   chat_id:c.chat_id,
    sender_id:uid(),
-   receiver_id:c.user_id,
    content:text
   })
   .select()
@@ -670,6 +750,9 @@ async function sendMessage(e){
   return alert(error.message);
 
  state.messages.push(data);
+
+ c.msg=text;
+ c.time="now";
 
  input.value="";
 
