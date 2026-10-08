@@ -615,99 +615,98 @@ function messageBubble(m){
 </div>`;
 }
 
-async function loadMessages(c){
- if(!hasSupabase||!c)return;
+async function loadMessages(c) {
+  if (!hasSupabase || !c) return;
 
- // Already known chat
- let chatId=c.chat_id||null;
+  let chatId = c.chat_id || null;
 
- // Find existing chat between current user and selected user
- if(!chatId){
+  // Find existing chat
+  if (!chatId) {
+    const { data: mine, error: mineError } = await sb
+      .from("chat_members")
+      .select("chat_id")
+      .eq("user_id", uid());
 
-  const {data:mine,error:mineError}=await sb
-   .from("chat_members")
-   .select("chat_id")
-   .eq("user_id",uid());
-
-  if(mineError){
- console.error("CHAT MEMBERS ERROR:", mineError);
- alert("Chat members error: " + mineError.message);
- return;
-  }
-
-  const ids=(mine||[]).map(x=>x.chat_id);
-
-  if(ids.length){
-
-   const {data:other,error:otherError}=await sb
-    .from("chat_members")
-    .select("chat_id")
-    .eq("user_id",c.user_id)
-    .in("chat_id",ids);
-
-   if(otherError){
-    console.warn(otherError);
-   }else if(other?.length){
-    chatId=other[0].chat_id;
-   }
-  }
- }
-
- // Create a new 1-to-1 chat if it doesn't exist
- if(!chatId){
-
-  const {data:newChat,error:chatError}=await sb
-   .from("chats")
-   .insert({
-    created_by:uid(),
-    is_group:false
-   })
-   .select("id")
-   .single();
-
-  if(chatError){
- console.error("CHAT CREATE ERROR:", chatError);
- alert("Chat create error: " + chatError.message);
- return;
-  }
-
-  chatId=newChat.id;
-
-  const {error:memberError}=await sb
-   .from("chat_members")
-   .insert([
-    {
-     chat_id:chatId,
-     user_id:uid()
-    },
-    {
-     chat_id:chatId,
-     user_id:c.user_id
+    if (mineError) {
+      console.error("CHAT MEMBERS ERROR:", mineError);
+      alert(mineError.message);
+      return;
     }
-   ]);
 
-  if(memberError){
- console.error("MEMBER CREATE ERROR:", memberError);
- alert("Member create error: " + memberError.message);
- return;
+    const ids = (mine || []).map(x => x.chat_id);
+
+    if (ids.length) {
+      const { data: other, error: otherError } = await sb
+        .from("chat_members")
+        .select("chat_id")
+        .eq("user_id", c.user_id)
+        .in("chat_id", ids);
+
+      if (otherError) {
+        console.error(otherError);
+        return;
+      }
+
+      if (other && other.length) {
+        chatId = other[0].chat_id;
+      }
+    }
   }
 
- c.chat_id=chatId;
+  // Create chat if it does not exist
+  if (!chatId) {
+    const { data: newChat, error: chatError } = await sb
+      .from("chats")
+      .insert({
+        created_by: uid(),
+        is_group: false
+      })
+      .select("id")
+      .single();
 
- const {data,error}=await sb
-  .from("messages")
-  .select("*")
-  .eq("chat_id",chatId)
-  .order("created_at");
+    if (chatError) {
+      console.error("CHAT CREATE ERROR:", chatError);
+      alert(chatError.message);
+      return;
+    }
 
- if(error){
-  console.warn(error);
-  state.messages=[];
-  return;
- }
+    chatId = newChat.id;
 
- state.messages=data||[];
+    const { error: memberError } = await sb
+      .from("chat_members")
+      .insert([
+        { chat_id: chatId, user_id: uid() },
+        { chat_id: chatId, user_id: c.user_id }
+      ]);
 
+    if (memberError) {
+      console.error("MEMBER CREATE ERROR:", memberError);
+      alert(memberError.message);
+      return;
+    }
+  }
+
+  // Save chat ID for future reloads
+  c.chat_id = chatId;
+
+  // Load messages for both new and existing chats
+  const { data, error } = await sb
+    .from("messages")
+    .select("*")
+    .eq("chat_id", chatId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("LOAD MESSAGES ERROR:", error);
+    alert(error.message);
+    return;
+  }
+
+  state.messages = data || [];
+
+  render();
+  scrollMessages();
+}
  // Mark received messages as seen
  await sb
   .from("messages")
