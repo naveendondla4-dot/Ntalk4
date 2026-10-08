@@ -717,6 +717,7 @@ async function loadMessages(c){
   .eq("chat_id",chatId)
   .neq("sender_id",uid())
   .is("seen_at",null);
+ }
 }
 
 async function sendMessage(e){
