@@ -485,6 +485,69 @@ async function loadChats(){
   }
  );
 }
+
+async function loadMessages(c) {
+  if (!hasSupabase || !c || !uid()) return;
+
+  let chatId = c.chat_id || null;
+
+  // Find an existing chat between these two users
+  if (!chatId) {
+    const { data: mine, error: mineError } = await sb
+      .from("chat_members")
+      .select("chat_id")
+      .eq("user_id", uid());
+
+    if (mineError) {
+      console.error("My chats error:", mineError);
+      alert(mineError.message);
+      return;
+    }
+
+    const ids = (mine || []).map(x => x.chat_id);
+
+    if (ids.length) {
+      const { data: other, error: otherError } = await sb
+        .from("chat_members")
+        .select("chat_id")
+        .eq("user_id", c.user_id)
+        .in("chat_id", ids);
+
+      if (otherError) {
+        console.error("Other user chats error:", otherError);
+        alert(otherError.message);
+        return;
+      }
+
+      if (other && other.length) {
+        chatId = other[0].chat_id;
+      }
+    }
+  }
+
+  // No existing chat: don't create one just to read messages
+  if (!chatId) {
+    state.messages = [];
+    return;
+  }
+
+  c.chat_id = chatId;
+
+  const { data, error } = await sb
+    .from("messages")
+    .select("*")
+    .eq("chat_id", chatId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("Load messages error:", error);
+    alert(error.message);
+    return;
+  }
+
+  state.messages = data || [];
+}
+
 async function openChat(i){
  state.activeChat=i;
  await loadMessages(state.chats[i]);
