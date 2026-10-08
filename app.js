@@ -630,9 +630,9 @@ async function loadMessages(c){
    .eq("user_id",uid());
 
   if(mineError){
-   console.warn(mineError);
-   state.messages=[];
-   return;
+ console.error("CHAT MEMBERS ERROR:", mineError);
+ alert("Chat members error: " + mineError.message);
+ return;
   }
 
   const ids=(mine||[]).map(x=>x.chat_id);
@@ -666,9 +666,9 @@ async function loadMessages(c){
    .single();
 
   if(chatError){
-   console.warn(chatError);
-   alert(chatError.message);
-   return;
+ console.error("CHAT CREATE ERROR:", chatError);
+ alert("Chat create error: " + chatError.message);
+ return;
   }
 
   chatId=newChat.id;
@@ -687,11 +687,10 @@ async function loadMessages(c){
    ]);
 
   if(memberError){
-   console.warn(memberError);
-   alert(memberError.message);
-   return;
+ console.error("MEMBER CREATE ERROR:", memberError);
+ alert("Member create error: " + memberError.message);
+ return;
   }
- }
 
  c.chat_id=chatId;
 
