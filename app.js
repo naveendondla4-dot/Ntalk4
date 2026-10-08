@@ -707,17 +707,6 @@ async function loadMessages(c) {
   render();
   scrollMessages();
 }
- // Mark received messages as seen
- await sb
-  .from("messages")
-  .update({
-   seen_at:new Date().toISOString()
-  })
-  .eq("chat_id",chatId)
-  .neq("sender_id",uid())
-  .is("seen_at",null);
- }
-}
 
 async function sendMessage(e){
  e.preventDefault();
