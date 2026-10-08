@@ -485,7 +485,11 @@ async function loadChats(){
   }
  );
 }
-
+async function openChat(i){
+ state.activeChat=i;
+ await loadMessages(state.chats[i]);
+ render();
+}
 function conversation(){
 
  const c=state.chats[state.activeChat];
