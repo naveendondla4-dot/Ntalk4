@@ -633,17 +633,50 @@ if (chatError) {
   return;
 }
 
+
+const { data: chatId, error: chatError } = await sb.rpc(
+  "get_or_create_direct_chat",
+  { other_user_id: c.user_id }
+);
+
+if (chatError) {
+  console.error("GET/CREATE CHAT ERROR:", chatError);
+  alert(chatError.message);
+  return;
+}
+
 c.chat_id = chatId;
 
-  // Save chat ID for future reloads
-  c.chat_id = chatId;
+console.log("RPC CHAT ID:", chatId);
+console.log("CONTACT USER ID:", c.user_id);
+console.log("CURRENT USER ID:", uid());
 
-  // Load messages for both new and existing chats
-  const { data, error } = await sb
-    .from("messages")
-    .select("*")
-    .eq("chat_id", chatId)
-    .order("created_at", { ascending: true });
+// Load messages
+const { data, error } = await sb
+  .from("messages")
+  .select("*")
+  .eq("chat_id", chatId)
+  .order("created_at", { ascending: true });
+
+if (error) {
+  console.error("LOAD MESSAGES ERROR:", error);
+  alert(error.message);
+  return;
+}
+
+state.messages = data || [];
+
+alert(
+  "CHAT ID: " + chatId +
+  "\nMESSAGES LOADED: " + state.messages.length +
+  "\nFIRST MESSAGE: " +
+  (state.messages[0]?.content || "No messages found")
+);
+
+render();
+scrollMessages();
+ 
+
 
   if (error) {
     console.error("LOAD MESSAGES ERROR:", error);
