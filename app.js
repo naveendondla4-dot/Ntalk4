@@ -634,17 +634,6 @@ if (chatError) {
 }
 
 
-const { data: chatId, error: chatError } = await sb.rpc(
-  "get_or_create_direct_chat",
-  { other_user_id: c.user_id }
-);
-
-if (chatError) {
-  console.error("GET/CREATE CHAT ERROR:", chatError);
-  alert(chatError.message);
-  return;
-}
-
 c.chat_id = chatId;
 
 console.log("RPC CHAT ID:", chatId);
