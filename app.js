@@ -721,7 +721,9 @@ const { data, error } = await sb
   .insert({
     chat_id: c.chat_id,
     sender_id: uid(),
+    receiver_id: c.user_id,
     content: text,
+   
     message_type: "text"
   })
   .select()
