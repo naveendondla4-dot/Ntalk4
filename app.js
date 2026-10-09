@@ -678,6 +678,8 @@ async function sendMessage(e){
 
  if(!c.chat_id)
   return alert("Chat could not be created.");
+ console.log("Receiver user ID:", c.user_id);
+console.log("Chat ID:", c.chat_id);
 
 const { data, error } = await sb
   .from("messages")
