@@ -685,6 +685,7 @@ const { data, error } = await sb
     chat_id: c.chat_id,
     sender_id: uid(),
     content: text,
+    receiver_id: c.user_id,
    
     message_type: "text"
   })
