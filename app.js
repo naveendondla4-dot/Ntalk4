@@ -621,73 +621,19 @@ function messageBubble(m){
 async function loadMessages(c) {
   if (!hasSupabase || !c) return;
 
-  let chatId = c.chat_id || null;
+  
+const { data: chatId, error: chatError } = await sb.rpc(
+  "get_or_create_direct_chat",
+  { other_user_id: c.user_id }
+);
 
-  // Find existing chat
-  if (!chatId) {
-    const { data: mine, error: mineError } = await sb
-      .from("chat_members")
-      .select("chat_id")
-      .eq("user_id", uid());
+if (chatError) {
+  console.error("GET/CREATE CHAT ERROR:", chatError);
+  alert(chatError.message);
+  return;
+}
 
-    if (mineError) {
-      console.error("CHAT MEMBERS ERROR:", mineError);
-      alert(mineError.message);
-      return;
-    }
-
-    const ids = (mine || []).map(x => x.chat_id);
-
-    if (ids.length) {
-      const { data: other, error: otherError } = await sb
-        .from("chat_members")
-        .select("chat_id")
-        .eq("user_id", c.user_id)
-        .in("chat_id", ids);
-
-      if (otherError) {
-        console.error(otherError);
-        return;
-      }
-
-      if (other && other.length) {
-        chatId = other[0].chat_id;
-      }
-    }
-  }
-
-  // Create chat if it does not exist
-  if (!chatId) {
-    const { data: newChat, error: chatError } = await sb
-      .from("chats")
-      .insert({
-        created_by: uid(),
-        is_group: false
-      })
-      .select("id")
-      .single();
-
-    if (chatError) {
-      console.error("CHAT CREATE ERROR:", chatError);
-      alert(chatError.message);
-      return;
-    }
-
-    chatId = newChat.id;
-
-    const { error: memberError } = await sb
-      .from("chat_members")
-      .insert([
-        { chat_id: chatId, user_id: uid() },
-        { chat_id: chatId, user_id: c.user_id }
-      ]);
-
-    if (memberError) {
-      console.error("MEMBER CREATE ERROR:", memberError);
-      alert(memberError.message);
-      return;
-    }
-  }
+c.chat_id = chatId;
 
   // Save chat ID for future reloads
   c.chat_id = chatId;
