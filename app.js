@@ -737,18 +737,29 @@ async function sendMessage(e){
  if(!c.chat_id)
   return alert("Chat could not be created.");
 
- const {data,error}=await sb
+const { data, error } = await sb
   .from("messages")
   .insert({
-   chat_id:c.chat_id,
-   sender_id:uid(),
-   content:text
+    chat_id: c.chat_id,
+    sender_id: uid(),
+    content: text,
+    message_type: "text"
   })
   .select()
   .single();
 
- if(error)
-  return alert(error.message);
+if (error) {
+  alert(
+    "MESSAGE SAVE FAILED\n" +
+    "Code: " + error.code + "\n" +
+    "Error: " + error.message +
+    "\nDetails: " + error.details
+  );
+  console.error("MESSAGE INSERT ERROR:", error);
+  return;
+}
+
+alert("MESSAGE SAVED\nID: " + data.id);
 
  state.messages.push(data);
 
