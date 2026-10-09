@@ -730,8 +730,14 @@ async function loadMessages(c) {
 
   state.messages = data || [];
 
-  render();
-  scrollMessages();
+alert(
+  "Chat ID: " + chatId +
+  "\nMessages loaded: " + state.messages.length +
+  "\nError: " + (error ? error.message : "None")
+);
+
+render();
+scrollMessages();
 }
 
 async function sendMessage(e){
