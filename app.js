@@ -621,68 +621,42 @@ function messageBubble(m){
 async function loadMessages(c) {
   if (!hasSupabase || !c) return;
 
-  
-const { data: chatId, error: chatError } = await sb.rpc(
-  "get_or_create_direct_chat",
-  { other_user_id: c.user_id }
-);
+  const { data: chatId, error: chatError } = await sb.rpc(
+    "get_or_create_direct_chat",
+    { other_user_id: c.user_id }
+  );
 
-if (chatError) {
-  console.error("GET/CREATE CHAT ERROR:", chatError);
-  alert(chatError.message);
-  return;
-}
+  if (chatError) {
+    console.error(chatError);
+    alert("Chat error: " + chatError.message);
+    return;
+  }
 
+  if (!chatId) {
+    alert("Chat ID not found.");
+    return;
+  }
 
-c.chat_id = chatId;
+  c.chat_id = chatId;
 
-console.log("RPC CHAT ID:", chatId);
-console.log("CONTACT USER ID:", c.user_id);
-console.log("CURRENT USER ID:", uid());
-
-// Load messages
-const { data, error } = await sb
-  .from("messages")
-  .select("*")
-  .eq("chat_id", chatId)
-  .order("created_at", { ascending: true });
-
-if (error) {
-  console.error("LOAD MESSAGES ERROR:", error);
-  alert(error.message);
-  return;
-}
-
-state.messages = data || [];
-
-alert(
-  "CHAT ID: " + chatId +
-  "\nMESSAGES LOADED: " + state.messages.length +
-  "\nFIRST MESSAGE: " +
-  (state.messages[0]?.content || "No messages found")
-);
-
-render();
-scrollMessages();
- 
-
+  const { data, error } = await sb
+    .from("messages")
+    .select("*")
+    .eq("chat_id", c.chat_id)
+    .order("created_at", { ascending: true });
 
   if (error) {
-    console.error("LOAD MESSAGES ERROR:", error);
-    alert(error.message);
+    console.error(error);
+    alert("Messages load failed: " + error.message);
     return;
   }
 
   state.messages = data || [];
+  console.log("CHAT ID:", c.chat_id);
+  console.log("LOADED MESSAGES:", state.messages.length);
 
-alert(
-  "Chat ID: " + chatId +
-  "\nMessages loaded: " + state.messages.length +
-  "\nError: " + (error ? error.message : "None")
-);
-
-render();
-scrollMessages();
+  render();
+  scrollMessages();
 }
 
 async function sendMessage(e){
